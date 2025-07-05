@@ -115,6 +115,7 @@ select_device() {
             fi
         done
 
+        echo >&2 
         warning "Invalid selection. Try again." >&2
     done
 }
@@ -363,6 +364,8 @@ analyze_device() {
     local pre_eol_dec pre_eol_status
     local tbw_max remaining_pct days_left years_left
     local health_status
+
+    echo >&2 
     
     # Validate device exists
     if [[ ! -e "/dev/$device" ]]; then
@@ -424,6 +427,7 @@ main() {
     validate_requirements
 
     while true; do
+        echo >&2 
         info "Scanning for eMMC devices..."
         
         if device=$(select_device); then
@@ -431,8 +435,10 @@ main() {
             
             # Analyze the selected device
             if analyze_device "$device"; then
+                echo >&2 
                 success "Analysis completed successfully!"
             else
+                echo >&2 
                 error "Analysis failed for device /dev/$device"
             fi
         else
@@ -441,10 +447,11 @@ main() {
         fi
     done
     
+    echo >&2 
     success "eMMC Lifetime Analyzer exited."
     exit 0
 }
 
-trap 'echo; success "eMMC Lifetime Analyzer exited."; exit 0' INT
+trap 'echo; echo; success "eMMC Lifetime Analyzer exited."; exit 0' INT
 
 main "$@"
