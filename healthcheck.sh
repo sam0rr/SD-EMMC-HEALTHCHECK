@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ###############################################################################
-# emmc_analyzer.sh — Professional eMMC lifetime and health analysis tool
+# healthcheck.sh — SD-EMMC lifetime and health analysis tool
 # • Works with: curl -fsSL <url> | bash (using /dev/tty for input)
 # • Works with: ./emmc_analyzer.sh
 # • Works with: bash emmc_analyzer.sh
