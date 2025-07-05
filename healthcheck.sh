@@ -102,7 +102,8 @@ select_device() {
 
     while true; do
         show_menu "${devices[@]}"
-        read -rp "Please select a device (1-${#devices[@]}, or 0 to exit): " choice
+        echo -n "Please select a device (1-${#devices[@]}, or 0 to exit): " >&2
+        read -r choice
 
         if [[ "$choice" == "0" ]]; then
             newline
@@ -437,9 +438,11 @@ main() {
             if analyze_device "$device"; then
                 newline
                 success "Analysis completed successfully!"
+                newline
             else
                 newline
                 error "Analysis failed for device /dev/$device"
+                newline
             fi
         else
             # User chose 0 or no devices → exit loop
