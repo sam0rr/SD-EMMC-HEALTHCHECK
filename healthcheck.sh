@@ -99,7 +99,7 @@ select_device() {
     PS3="Please choose a device (1-${#devices[@]}, 0 to exit): "
     select dev in "${devices[@]}" "Exit"; do
         if [[ $REPLY == 0 ]]; then
-            newlune
+            newline
             info "Exiting selection…"
             return 1
         elif (( REPLY >= 1 && REPLY <= ${#devices[@]} )); then
