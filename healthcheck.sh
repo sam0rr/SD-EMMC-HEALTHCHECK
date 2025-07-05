@@ -454,6 +454,6 @@ main() {
     exit 0
 }
 
-trap 'newline(); newline(); success "eMMC Lifetime Analyzer exited."; exit 0' INT
+trap 'newline(); newline(); success "eMMC Lifetime Analyzer exited."; newline(); exit 0' INT
 
 main "$@"
