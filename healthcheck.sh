@@ -102,8 +102,19 @@ select_device() {
 
     while true; do
         show_menu "${devices[@]}"
+        
+        # Clear any pending input
+        while read -t 0.1 -n 1; do :; done
+        
+        # Read user input with explicit stdin
         echo -n "Please select a device (1-${#devices[@]}, or 0 to exit): " >&2
-        read -r choice
+        read -r choice </dev/tty || read -r choice
+        
+        # Debug: show what was read (remove this line after testing)
+        # echo "DEBUG: Read choice='$choice' (length=${#choice})" >&2
+        
+        # Trim whitespace
+        choice=$(echo "$choice" | tr -d '[:space:]')
 
         if [[ "$choice" == "0" ]]; then
             newline
@@ -117,7 +128,7 @@ select_device() {
         fi
 
         newline
-        warning "Invalid selection. Try again."
+        warning "Invalid selection '$choice'. Try again."
     done
 }
 
@@ -438,11 +449,9 @@ main() {
             if analyze_device "$device"; then
                 newline
                 success "Analysis completed successfully!"
-                newline
             else
                 newline
                 error "Analysis failed for device /dev/$device"
-                newline
             fi
         else
             # User chose 0 or no devices → exit loop
