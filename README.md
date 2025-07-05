@@ -2,22 +2,6 @@
 
 An SD-EMMC lifetime and health analysis tool written in Bash. This script detects SD-EMMC devices on your system, reads hardware registers, computes wear metrics, and generates a detailed report with lifespan estimates and recommendations.
 
-## Repository
-
-This project is hosted on GitHub:
-
-```none
-https://github.com/sam0rr/SD-EMMC-HEALTHCHECK
-```
-
-### Directory structure
-
-```
-SD-EMMC-HEALTHCHECK/
-├── healthcheck.sh      # Main script
-└── README.md           # Project documentation (this file)
-```
-
 ## Features
 
 * **Device discovery**: Automatically finds `mmcblk*` devices.
