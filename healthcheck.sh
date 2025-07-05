@@ -2,6 +2,9 @@
 
 ###############################################################################
 # emmc_analyzer.sh — Professional eMMC lifetime and health analysis tool
+# • Works with: curl -fsSL <url> | bash (using /dev/tty for input)
+# • Works with: ./emmc_analyzer.sh
+# • Works with: bash emmc_analyzer.sh
 # • Detects all available eMMC devices in the system
 # • Reads hardware lifetime estimates from eMMC registers
 # • Calculates precise wear metrics and remaining lifespan
@@ -46,6 +49,11 @@ error_handler() {
 
 # ── Validate system requirements ──────────────────────────────────────────────
 validate_requirements() {
+    if [[ ! -e /dev/tty ]]; then
+        error "This script requires an interactive terminal. Please run it from a terminal session."
+        exit 1
+    fi
+    
     if ! command -v mmc >/dev/null 2>&1; then
         error "mmc-utils not installed. Use: sudo apt install mmc-utils"
         exit 1
@@ -90,7 +98,7 @@ show_menu() {
     newline
 }
 
-# ── Interactive device selection ──────────────────────────────────────────────
+# ── Interactive device selection (always uses /dev/tty) ───────────────────────
 select_device() {
     mapfile -t devices < <(discover_emmc_devices)
     if (( ${#devices[@]} == 0 )); then
@@ -103,7 +111,10 @@ select_device() {
     while true; do
         show_menu "${devices[@]}"
         echo -n "Please select a device (1-${#devices[@]}, or 0 to exit): " >&2
-        read -r choice
+        read -r choice < /dev/tty
+
+        # Trim whitespace
+        choice=$(echo "$choice" | tr -d '[:space:]')
 
         if [[ "$choice" == "0" ]]; then
             newline
