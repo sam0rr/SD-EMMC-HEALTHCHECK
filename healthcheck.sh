@@ -351,10 +351,6 @@ display_analysis_report() {
     generate_recommendations "$avg_pct"
     echo
     title "==============================================================================="
-    echo
-    
-    read -rp "Press Enter to analyze another device, or Ctrl+C to exit..." >&2
-    echo >&2
 }
 
 # ── Analyze single device ────────────────────────────────────────────────────
@@ -426,7 +422,7 @@ main() {
     echo
     
     validate_requirements
-    
+
     while true; do
         info "Scanning for eMMC devices..."
         
@@ -438,9 +434,6 @@ main() {
                 success "Analysis completed successfully!"
             else
                 error "Analysis failed for device /dev/$device"
-                echo
-                read -rp "Press Enter to continue or Ctrl+C to exit..." >&2
-                echo >&2
             fi
         else
             # User selected exit (0) or no devices found
