@@ -3,17 +3,17 @@
 ###############################################################################
 # healthcheck.sh — SD-EMMC lifetime and health analysis tool
 # • Works with: curl -fsSL <url> | bash (using /dev/tty for input)
-# • Works with: ./emmc_analyzer.sh
-# • Works with: bash emmc_analyzer.sh
-# • Detects all available eMMC devices in the system
-# • Reads hardware lifetime estimates from eMMC registers
+# • Works with: ./healthcheck.sh
+# • Works with: bash healthcheck.sh
+# • Detects all available SD-EMMC devices in the system
+# • Reads hardware lifetime estimates from SD-EMMC registers
 # • Calculates precise wear metrics and remaining lifespan
 # • Provides detailed health assessment and recommendations
 # • Supports multiple device analysis in a single session
 ###############################################################################
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-readonly CYCLES_MAX=3000                    # Standard eMMC P/E cycles
+readonly CYCLES_MAX=3000                    # Standard EMMC P/E cycles
 readonly BYTES_PER_SECTOR=512               # Standard sector size
 readonly SECONDS_PER_DAY=86400              # Time conversion
 readonly DAYS_PER_YEAR=365                  # Time conversion
@@ -65,8 +65,8 @@ validate_requirements() {
     fi
 }
 
-# ── Discover available eMMC devices ───────────────────────────────────────────
-discover_emmc_devices() {
+# ── Discover available SD-EMMC devices ───────────────────────────────────────────
+discover_devices() {
     local devices=()
     
     while IFS= read -r device; do
@@ -83,7 +83,7 @@ show_menu() {
     local devices=("$@")
 
     newline
-    subtitle "Available SD/eMMC devices:"
+    subtitle "Available SD-EMMC devices:"
     newline
 
     for idx in "${!devices[@]}"; do
@@ -100,10 +100,10 @@ show_menu() {
 
 # ── Interactive device selection (always uses /dev/tty) ───────────────────────
 select_device() {
-    mapfile -t devices < <(discover_emmc_devices)
+    mapfile -t devices < <(discover_devices)
     if (( ${#devices[@]} == 0 )); then
         newline
-        error "No SD/eMMC devices found. Please insert a device and retry."
+        error "No SD-EMMC devices found. Please insert a device and retry."
         newline
         return 1
     fi
@@ -172,20 +172,20 @@ calculate_write_stats() {
     printf '%s %s\n' "$daily_gb" "$total_gb"
 }
 
-# ── Read eMMC extended CSD registers ──────────────────────────────────────────
-read_emmc_registers() {
+# ── Read SD-EMMC extended CSD registers ──────────────────────────────────────────
+read_registers() {
     local device="$1"
     local extcsd_output
     
     if ! extcsd_output=$(sudo mmc extcsd read "/dev/$device" 2>/dev/null); then
-        error "Failed to read eMMC registers for /dev/$device"
+        error "Failed to read SD-EMMC registers for /dev/$device"
         return 1
     fi
     
     echo "$extcsd_output"
 }
 
-# ── Parse lifetime estimates from eMMC registers ──────────────────────────────
+# ── Parse lifetime estimates from SD-EMMC registers ──────────────────────────────
 parse_lifetime_estimates() {
     local extcsd_data="$1"
     local a_hex b_hex pre_eol_hex
@@ -312,7 +312,7 @@ display_analysis_report() {
     
     newline
     title "==============================================================================="
-    title "eMMC LIFETIME ANALYSIS REPORT"
+    title "SD-EMMC LIFETIME ANALYSIS REPORT"
     title "==============================================================================="
     newline
     
@@ -397,10 +397,10 @@ analyze_device() {
     fi
     read -r daily_gb total_gb < <(calculate_write_stats "$sectors_written" "$uptime")
     
-    # Read eMMC registers
-    info "Reading eMMC hardware registers..."
-    if ! extcsd_data=$(read_emmc_registers "$device"); then
-        error "Failed to read eMMC registers for /dev/$device"
+    # Read SD-EMMC registers
+    info "Reading SD-EMMC hardware registers..."
+    if ! extcsd_data=$(read_registers "$device"); then
+        error "Failed to read SD-EMMC registers for /dev/$device"
         return 1
     fi
     
@@ -433,13 +433,13 @@ main() {
     local device selected
 
     newline
-    info "eMMC Lifetime Analyzer - Professional Analysis Tool"
+    info "SD-EMMC Lifetime Analyzer - Analysis Tool"
     newline
     validate_requirements
 
     while true; do
         newline
-        info "Scanning for SD/eMMC devices…"
+        info "Scanning for SD-EMMC devices…"
 
         if selected=$(select_device); then
             device=$selected
@@ -461,11 +461,11 @@ main() {
     done
 
     newline
-    success "eMMC Lifetime Analyzer exited."
+    success "SD-EMMC Lifetime Analyzer exited."
     newline
     exit 0
 }
 
-trap 'newline; newline; success "eMMC Lifetime Analyzer exited."; newline; exit 0' INT
+trap 'newline; newline; success "SD-EMMC Lifetime Analyzer exited."; newline; exit 0' INT
 
 main "$@"
