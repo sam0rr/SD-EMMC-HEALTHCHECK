@@ -1,6 +1,6 @@
 # SD‑EMMC Healthcheck
 
-A professional eMMC lifetime and health analysis tool written in Bash. This script detects eMMC devices on your system, reads hardware registers, computes wear metrics, and generates a detailed report with lifespan estimates and recommendations.
+An SD-EMMC lifetime and health analysis tool written in Bash. This script detects eMMC devices on your system, reads hardware registers, computes wear metrics, and generates a detailed report with lifespan estimates and recommendations.
 
 ## Repository
 
