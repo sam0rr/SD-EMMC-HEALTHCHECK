@@ -28,14 +28,14 @@ readonly DIM='\033[2m'
 readonly NC='\033[0m'
 
 # ── Logging utility ───────────────────────────────────────────────────────────
-log() { echo -e "$(date '+%F %T') | $*" >&2; }
-info() { echo -e "${BLUE}$*${NC}"; }
-success() { echo -e "${GREEN}$*${NC}"; }
-warning() { echo -e "${YELLOW}$*${NC}"; }
-error() { echo -e "${RED}$*${NC}"; }
-title() { echo -e "${BOLD}${CYAN}$*${NC}"; }
-subtitle() { echo -e "${BOLD}${BLUE}$*${NC}"; }
-label() { echo -e "${DIM}$*${NC}"; }
+log()     { echo -e "$(date '+%F %T') | $*" >&2; }
+info()    { echo -e "${BLUE}$*${NC}" >&2; }
+success() { echo -e "${GREEN}$*${NC}" >&2; }
+warning() { echo -e "${YELLOW}$*${NC}" >&2; }
+error()   { echo -e "${RED}$*${NC}" >&2; }
+title()   { echo -e "${BOLD}${CYAN}$*${NC}" >&2; }
+subtitle(){ echo -e "${BOLD}${BLUE}$*${NC}" >&2; }
+label()   { echo -e "${DIM}$*${NC}"; }
 newline() { printf '\n' >&2; }
 
 # ── Error handler ─────────────────────────────────────────────────────────────
@@ -62,11 +62,11 @@ discover_emmc_devices() {
     local devices=()
     
     while IFS= read -r device; do
-        if [[ -n "$device" ]]; then
-            devices+=("$device")
-        fi
+        [[ -n "$device" && -b "/dev/$device" ]] && devices+=("$device")
     done < <(lsblk -dno NAME | grep -E '^mmcblk[0-9]+' || true)
-    
+
+    (( ${#devices[@]} )) || return 1
+
     printf '%s\n' "${devices[@]}"
 }
 
@@ -74,9 +74,9 @@ discover_emmc_devices() {
 show_menu() {
     local devices=("$@")
 
-    newline()
-    subtitle "Available SD/eMMC devices:" >&2
-    newline()
+    newline
+    subtitle "Available SD/eMMC devices:"
+    newline
 
     for idx in "${!devices[@]}"; do
         local dev=${devices[$idx]}
@@ -85,23 +85,30 @@ show_menu() {
         echo -e "${DIM}  $((idx+1)))${NC} /dev/${dev} (${size_gb} GB)" >&2
     done
 
-    newline()
+    newline
     echo -e "${DIM}  0)${NC} Exit" >&2
-    newline()
+    newline
 }
 
 # ── Interactive device selection ──────────────────────────────────────────────
 select_device() {
     mapfile -t devices < <(discover_emmc_devices)
-    (( ${#devices[@]} )) || { error "No SD/eMMC devices found"; return 1; }
+
+    if (( ${#devices[@]} == 0 )); then
+        newline
+        error "No SD/eMMC devices found. Please insert a device and retry."
+        newline
+        return 1
+    fi
 
     while true; do
         sleep 1
         show_menu "${devices[@]}"
-        read -rp "Please select a device (1–${#devices[@]}, name, or 0 to exit): " choice >&2
+        read -rp "Please select a device (1–${#devices[@]}, name, or 0 to exit): " choice
 
         if [[ "$choice" == "0" ]]; then
-            info "Exiting..." >&2
+            newline
+            info "Exiting..."
             return 1
         fi
 
@@ -117,8 +124,8 @@ select_device() {
             fi
         done
 
-        newline() 
-        warning "Invalid selection. Try again." >&2
+        newline 
+        warning "Invalid selection. Try again."
     done
 }
 
@@ -301,23 +308,23 @@ display_analysis_report() {
     cycles_used=$((avg_pct * CYCLES_MAX / 100))
     tbw_remaining=$((tbw_max * remaining_pct / 100))
     
-    newline()
+    newline
     title "==============================================================================="
     title "eMMC LIFETIME ANALYSIS REPORT"
     title "==============================================================================="
-    newline()
+    newline
     
     subtitle "Device Information"
     echo -e "   $(label 'Device Path     :') /dev/$device"
     echo -e "   $(label 'Capacity        :') ${capacity_gb} GB"
     echo -e "   $(label 'System Uptime   :') $(printf "%.1f" "$uptime") seconds (${uptime_days} days)"
-    newline()
+    newline
     
     subtitle "Write Statistics"
     echo -e "   $(label 'Daily Write Rate:') $daily_gb GB/day"
     echo -e "   $(label 'Total Written   :') $total_gb GB (since boot)"
     echo -e "   $(label 'Write Time      :') ${write_time_sec} seconds"
-    newline()
+    newline
     
     subtitle "Flash Memory Status"
     echo -e "   $(label 'Life Time Est A :') $a_dec (${a_pct}%)"
@@ -332,13 +339,13 @@ display_analysis_report() {
         3) error "$pre_eol_status" ;;
         *) echo "$pre_eol_status" ;;
     esac
-    newline()
+    newline
     
     subtitle "Lifespan Projection"
     echo -e "   $(label 'Maximum TBW     :') $tbw_max GB"
     echo -e "   $(label 'Remaining TBW   :') $tbw_remaining GB"
     echo -e "   $(label 'Estimated Life  :') $days_left days (~$years_left years)"
-    newline()
+    newline
     
     subtitle "Health Assessment"
     printf "   $(label 'Status          :') "
@@ -348,11 +355,11 @@ display_analysis_report() {
         "attention_required") error "Attention Required" ;;
         *) echo "Unknown" ;;
     esac
-    newline()
+    newline
     
     subtitle "Recommendations"
     generate_recommendations "$avg_pct"
-    newline()
+    newline
     title "==============================================================================="
 }
 
@@ -367,7 +374,7 @@ analyze_device() {
     local tbw_max remaining_pct days_left years_left
     local health_status
 
-    newline() >&2 
+    newline
     
     # Validate device exists
     if [[ ! -e "/dev/$device" ]]; then
@@ -424,12 +431,12 @@ main() {
     local device
     
     info "eMMC Lifetime Analyzer - Professional Analysis Tool"
-    newline()
+    newline
     
     validate_requirements
 
     while true; do
-        newline() >&2 
+        newline
         info "Scanning for eMMC devices..."
         
         if device=$(select_device); then
@@ -437,10 +444,10 @@ main() {
             
             # Analyze the selected device
             if analyze_device "$device"; then
-                newline() >&2 
+                newline
                 success "Analysis completed successfully!"
             else
-                newline() >&2 
+                newline
                 error "Analysis failed for device /dev/$device"
             fi
         else
@@ -449,11 +456,12 @@ main() {
         fi
     done
     
-    newline() >&2 
+    newline
     success "eMMC Lifetime Analyzer exited."
+    newline
     exit 0
 }
 
-trap 'newline(); newline(); success "eMMC Lifetime Analyzer exited."; newline(); exit 0' INT
+trap 'newline; newline; success "eMMC Lifetime Analyzer exited."; newline; exit 0' INT
 
 main "$@"
