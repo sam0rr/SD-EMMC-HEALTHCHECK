@@ -6,6 +6,7 @@
 # • Reads hardware lifetime estimates from eMMC registers
 # • Calculates precise wear metrics and remaining lifespan
 # • Provides detailed health assessment and recommendations
+# • Supports multiple device analysis in a single session
 ###############################################################################
 
 # ── Configuration ─────────────────────────────────────────────────────────────
@@ -91,26 +92,26 @@ show_menu() {
 # ── Interactive device selection ──────────────────────────────────────────────
 select_device() {
     mapfile -t devices < <(discover_emmc_devices)
-    (( ${#devices[@]} )) || { error "No SD/eMMC devices found"; exit 1; }
+    (( ${#devices[@]} )) || { error "No SD/eMMC devices found"; return 1; }
 
     while true; do
         show_menu "${devices[@]}"
         read -rp "Please select a device (1–${#devices[@]}, name, or 0 to exit): " choice >&2
 
         if [[ "$choice" == "0" ]]; then
-            echo "Exiting..." >&2
-            exit 0
+            info "Exiting..." >&2
+            return 1
         fi
 
         if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#devices[@]} )); then
             echo "${devices[choice-1]}"
-            return
+            return 0
         fi
 
         for dev in "${devices[@]}"; do
             if [[ "$choice" == "$dev" || "$choice" == "/dev/$dev" ]]; then
                 echo "$dev"
-                return
+                return 0
             fi
         done
 
@@ -134,7 +135,7 @@ read_device_stats() {
     
     if [[ ! -r "$stat_file" ]]; then
         error "Cannot read device statistics: $stat_file"
-        exit 1
+        return 1
     fi
     
     local sectors_written write_time_ms
@@ -166,7 +167,7 @@ read_emmc_registers() {
     
     if ! extcsd_output=$(sudo mmc extcsd read "/dev/$device" 2>/dev/null); then
         error "Failed to read eMMC registers for /dev/$device"
-        exit 1
+        return 1
     fi
     
     echo "$extcsd_output"
@@ -350,11 +351,16 @@ display_analysis_report() {
     generate_recommendations "$avg_pct"
     echo
     title "==============================================================================="
+    echo
+    
+    read -rp "Press Enter to analyze another device, or Ctrl+C to exit..." >&2
+    echo >&2
 }
 
-# ── Main execution flow ───────────────────────────────────────────────────────
-main() {
-    local device capacity_gb uptime
+# ── Analyze single device ────────────────────────────────────────────────────
+analyze_device() {
+    local device="$1"
+    local capacity_gb uptime
     local sectors_written write_time_ms daily_gb total_gb
     local extcsd_data a_hex b_hex pre_eol_hex
     local a_dec b_dec a_pct b_pct avg_pct
@@ -362,25 +368,10 @@ main() {
     local tbw_max remaining_pct days_left years_left
     local health_status
     
-    info "eMMC Lifetime Analyzer - Professional Analysis Tool"
-    
-    validate_requirements
-    
-    # Check for command line argument first
-    if [[ -n "$1" ]]; then
-        device="$1"
-        info "Using specified device: /dev/$device"
-        
-        # Validate device exists
-        if [[ ! -e "/dev/$device" ]]; then
-            error "Device /dev/$device does not exist"
-            exit 1
-        fi
-    else
-        # Select target device interactively
-        info "Scanning for eMMC devices..."
-        device=$(select_device)
-        info "Selected device: /dev/$device"
+    # Validate device exists
+    if [[ ! -e "/dev/$device" ]]; then
+        error "Device /dev/$device does not exist"
+        return 1
     fi
     
     # Gather device information
@@ -390,12 +381,18 @@ main() {
     
     # Read device statistics
     info "Analyzing write statistics..."
-    read -r sectors_written write_time_ms < <(read_device_stats "$device")
+    if ! read -r sectors_written write_time_ms < <(read_device_stats "$device"); then
+        error "Failed to read device statistics for /dev/$device"
+        return 1
+    fi
     read -r daily_gb total_gb < <(calculate_write_stats "$sectors_written" "$uptime")
     
     # Read eMMC registers
     info "Reading eMMC hardware registers..."
-    extcsd_data=$(read_emmc_registers "$device")
+    if ! extcsd_data=$(read_emmc_registers "$device"); then
+        error "Failed to read eMMC registers for /dev/$device"
+        return 1
+    fi
     
     # Parse lifetime data
     info "Parsing lifetime estimates..."
@@ -417,6 +414,44 @@ main() {
         "$pre_eol_dec" "$pre_eol_status" \
         "$tbw_max" "$remaining_pct" "$days_left" "$years_left" \
         "$health_status"
+    
+    return 0
 }
+
+# ── Main execution flow ───────────────────────────────────────────────────────
+main() {
+    local device
+    
+    info "eMMC Lifetime Analyzer - Professional Analysis Tool"
+    echo
+    
+    validate_requirements
+    
+    while true; do
+        info "Scanning for eMMC devices..."
+        
+        if device=$(select_device); then
+            info "Selected device: /dev/$device"
+            
+            # Analyze the selected device
+            if analyze_device "$device"; then
+                success "Analysis completed successfully!"
+            else
+                error "Analysis failed for device /dev/$device"
+                echo
+                read -rp "Press Enter to continue or Ctrl+C to exit..." >&2
+                echo >&2
+            fi
+        else
+            # User selected exit (0) or no devices found
+            break
+        fi
+    done
+    
+    success "eMMC Lifetime Analyzer exited."
+    exit 0
+}
+
+trap 'echo; success "eMMC Lifetime Analyzer exited."; exit 0' INT
 
 main "$@"
