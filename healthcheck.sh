@@ -102,29 +102,22 @@ select_device() {
     fi
 
     while true; do
-        sleep 1
         show_menu "${devices[@]}"
+        
         read -rp "Please select a device (1–${#devices[@]}, name, or 0 to exit): " choice
 
         if [[ "$choice" == "0" ]]; then
             newline
-            info "Exiting..."
+            info "Exiting selection…"
             return 1
         fi
-
+        
         if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#devices[@]} )); then
-            echo "${devices[choice-1]}"
+            SELECTED_DEVICE="${devices[choice-1]}"
             return 0
         fi
 
-        for dev in "${devices[@]}"; do
-            if [[ "$choice" == "$dev" || "$choice" == "/dev/$dev" ]]; then
-                echo "$dev"
-                return 0
-            fi
-        done
-
-        newline 
+        newline
         warning "Invalid selection. Try again."
     done
 }
@@ -439,7 +432,7 @@ main() {
         newline
         info "Scanning for eMMC devices..."
         
-        if device=$(select_device); then
+        if select_device; then
             info "Selected device: /dev/$device"
             
             # Analyze the selected device
