@@ -93,22 +93,30 @@ show_menu() {
 # ── Interactive device selection ──────────────────────────────────────────────
 select_device() {
     mapfile -t devices < <(discover_emmc_devices)
-    (( ${#devices[@]} )) || { error "No SD/eMMC devices found. Please insert a device and retry."; return 1; }
+    if (( ${#devices[@]} == 0 )); then
+        newline
+        error "No SD/eMMC devices found. Please insert a device and retry."
+        newline
+        return 1
+    fi
 
-    newline
-    PS3="Please choose a device (1-${#devices[@]}, 0 to exit): "
-    select dev in "${devices[@]}" "Exit"; do
-        if [[ $REPLY == 0 ]]; then
+    while true; do
+        show_menu "${devices[@]}"
+        read -rp "Please select a device (1-${#devices[@]}, or 0 to exit): " choice
+
+        if [[ "$choice" == "0" ]]; then
             newline
             info "Exiting selection…"
             return 1
-        elif (( REPLY >= 1 && REPLY <= ${#devices[@]} )); then
-            echo "$dev"
-            return 0
-        else
-            newline
-            warning "Invalid choice, please try again."
         fi
+
+        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#devices[@]} )); then
+            echo "${devices[choice-1]}"
+            return 0
+        fi
+
+        newline
+        warning "Invalid selection. Try again."
     done
 }
 
