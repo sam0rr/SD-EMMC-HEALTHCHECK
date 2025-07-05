@@ -7,13 +7,13 @@ An SD-EMMC lifetime and health analysis tool written in Bash. This script detect
 This project is hosted on GitHub:
 
 ```none
-https://github.com/sam0rr/SD-EMMC_HEALTHCHECK
+https://github.com/sam0rr/SD-EMMC-HEALTHCHECK
 ```
 
 ### Directory structure
 
 ```
-SD-EMMC_HEALTHCHECK/
+SD-EMMC-HEALTHCHECK/
 ├── healthcheck.sh      # Main script
 └── README.md           # Project documentation (this file)
 ```
@@ -50,7 +50,7 @@ Choose one of the following methods:
 *Downloads and executes the script without saving it locally.*
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sam0rr/SD-EMMC_HEALTHCHECK/main/healthcheck.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sam0rr/SD-EMMC-HEALTHCHECK/main/healthcheck.sh | bash
 ```
 
 ### 2. Install as a system command
@@ -59,7 +59,7 @@ curl -fsSL https://raw.githubusercontent.com/sam0rr/SD-EMMC_HEALTHCHECK/main/hea
 
    ```bash
    sudo curl -fsSL \
-       https://raw.githubusercontent.com/sam0rr/SD-EMMC_HEALTHCHECK/main/healthcheck.sh \
+       https://raw.githubusercontent.com/sam0rr/SD-EMMC-HEALTHCHECK/main/healthcheck.sh \
        -o /usr/local/bin/emmc-healthcheck
    ```
 2. Make executable:
