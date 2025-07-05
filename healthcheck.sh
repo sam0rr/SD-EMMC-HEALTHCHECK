@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ###############################################################################
 # emmc_analyzer.sh — Professional eMMC lifetime and health analysis tool
@@ -38,7 +38,7 @@ warning() { echo -e "${YELLOW}$*${NC}" >&2; }
 error()   { echo -e "${RED}$*${NC}" >&2; }
 title()   { echo -e "${BOLD}${CYAN}$*${NC}" >&2; }
 subtitle(){ echo -e "${BOLD}${BLUE}$*${NC}" >&2; }
-label()   { echo -e "${DIM}$*${NC}"; >&2; }
+label() { echo -e "${DIM}$*${NC}"; }
 newline() { printf '\n' >&2; }
 
 # ── Error handler ─────────────────────────────────────────────────────────────
