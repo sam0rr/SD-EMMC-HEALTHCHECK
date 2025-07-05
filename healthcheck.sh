@@ -38,7 +38,7 @@ warning() { echo -e "${YELLOW}$*${NC}" >&2; }
 error()   { echo -e "${RED}$*${NC}" >&2; }
 title()   { echo -e "${BOLD}${CYAN}$*${NC}" >&2; }
 subtitle(){ echo -e "${BOLD}${BLUE}$*${NC}" >&2; }
-label()   { echo -e "${DIM}$*${NC}"; }
+label()   { echo -e "${DIM}$*${NC}"; >&2; }
 newline() { printf '\n' >&2; }
 
 # ── Error handler ─────────────────────────────────────────────────────────────
@@ -112,8 +112,7 @@ select_device() {
         show_menu "${devices[@]}"
         echo -n "Please select a device (1-${#devices[@]}, or 0 to exit): " >&2
         read -r choice < /dev/tty
-
-        # Trim whitespace
+        
         choice=$(echo "$choice" | tr -d '[:space:]')
 
         if [[ "$choice" == "0" ]]; then
@@ -433,6 +432,7 @@ analyze_device() {
 main() {
     local device selected
 
+    newline
     info "eMMC Lifetime Analyzer - Professional Analysis Tool"
     newline
     validate_requirements
@@ -445,7 +445,6 @@ main() {
             device=$selected
             info "Selected device: /dev/$device"
 
-            # Analyze the selected device
             if analyze_device "$device"; then
                 newline
                 success "Analysis completed successfully!"
