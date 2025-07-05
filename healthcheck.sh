@@ -2,9 +2,6 @@
 
 ###############################################################################
 # emmc_analyzer.sh — Professional eMMC lifetime and health analysis tool
-# • Works with: curl -fsSL <url> | bash
-# • Works with: ./emmc_analyzer.sh
-# • Works with: bash emmc_analyzer.sh
 # • Detects all available eMMC devices in the system
 # • Reads hardware lifetime estimates from eMMC registers
 # • Calculates precise wear metrics and remaining lifespan
@@ -103,59 +100,25 @@ select_device() {
         return 1
     fi
 
-    # Check if we're running interactively
-    if [[ -t 0 ]] || [[ -t 1 ]]; then
-        # Interactive mode - normal operation
-        while true; do
-            show_menu "${devices[@]}"
-            echo -n "Please select a device (1-${#devices[@]}, or 0 to exit): " >&2
-            read -r choice
+    while true; do
+        show_menu "${devices[@]}"
+        echo -n "Please select a device (1-${#devices[@]}, or 0 to exit): " >&2
+        read -r choice
 
-            if [[ "$choice" == "0" ]]; then
-                newline
-                info "Exiting selection…"
-                return 1
-            fi
-
-            if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#devices[@]} )); then
-                echo "${devices[choice-1]}"
-                return 0
-            fi
-
+        if [[ "$choice" == "0" ]]; then
             newline
-            warning "Invalid selection. Try again."
-        done
-    elif [[ -e /dev/tty ]]; then
-        # We're piped but /dev/tty is available
-        while true; do
-            show_menu "${devices[@]}"
-            echo -n "Please select a device (1-${#devices[@]}, or 0 to exit): " >&2
-            read -r choice < /dev/tty
+            info "Exiting selection…"
+            return 1
+        fi
 
-            if [[ "$choice" == "0" ]]; then
-                newline
-                info "Exiting selection…"
-                return 1
-            fi
+        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#devices[@]} )); then
+            echo "${devices[choice-1]}"
+            return 0
+        fi
 
-            if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#devices[@]} )); then
-                echo "${devices[choice-1]}"
-                return 0
-            fi
-
-            newline
-            warning "Invalid selection. Try again."
-        done
-    else
-        # Non-interactive mode (piped from curl without tty)
         newline
-        warning "Running in non-interactive mode"
-        info "Analyzing all available devices..."
-        
-        # Return a special marker to indicate all devices should be analyzed
-        echo "ALL_DEVICES"
-        return 0
-    fi
+        warning "Invalid selection. Try again."
+    done
 }
 
 # ── Calculate device capacity ─────────────────────────────────────────────────
@@ -463,91 +426,29 @@ main() {
     newline
     validate_requirements
 
-    # Check if an argument was provided (device name or number)
-    if [[ $# -gt 0 ]]; then
-        # Command line argument mode
-        local arg="$1"
-        mapfile -t devices < <(discover_emmc_devices)
-        
-        if [[ ${#devices[@]} -eq 0 ]]; then
-            error "No SD/eMMC devices found!"
-            exit 1
-        fi
-        
-        # Check if argument is a number
-        if [[ "$arg" =~ ^[0-9]+$ ]]; then
-            local idx=$((arg - 1))
-            if [[ $idx -ge 0 && $idx -lt ${#devices[@]} ]]; then
-                device="${devices[$idx]}"
+    while true; do
+        newline
+        info "Scanning for SD/eMMC devices…"
+
+        if selected=$(select_device); then
+            device=$selected
+            info "Selected device: /dev/$device"
+
+            # Analyze the selected device
+            if analyze_device "$device"; then
+                newline
+                success "Analysis completed successfully!"
+                newline
             else
-                error "Invalid device number: $arg"
-                exit 1
+                newline
+                error "Analysis failed for device /dev/$device"
+                newline
             fi
         else
-            # Check if it's a valid device name
-            local found=0
-            for d in "${devices[@]}"; do
-                if [[ "$d" == "$arg" ]]; then
-                    device="$arg"
-                    found=1
-                    break
-                fi
-            done
-            
-            if [[ $found -eq 0 ]]; then
-                error "Device not found: $arg"
-                exit 1
-            fi
+            # User chose 0 or no devices → exit loop
+            break
         fi
-        
-        info "Analyzing /dev/$device..."
-        if analyze_device "$device"; then
-            newline
-            success "Analysis completed successfully!"
-        else
-            newline
-            error "Analysis failed for device /dev/$device"
-        fi
-    else
-        # Interactive mode
-        while true; do
-            newline
-            info "Scanning for SD/eMMC devices…"
-
-            if selected=$(select_device); then
-                if [[ "$selected" == "ALL_DEVICES" ]]; then
-                    # Non-interactive mode - analyze all devices
-                    mapfile -t all_devices < <(discover_emmc_devices)
-                    for device in "${all_devices[@]}"; do
-                        info "Analyzing device: /dev/$device"
-                        if analyze_device "$device"; then
-                            newline
-                            success "Analysis completed for /dev/$device"
-                        else
-                            newline
-                            error "Analysis failed for device /dev/$device"
-                        fi
-                    done
-                    break
-                else
-                    device=$selected
-                    info "Selected device: /dev/$device"
-
-                    # Analyze the selected device
-                    if analyze_device "$device"; then
-                        newline
-                        success "Analysis completed successfully!"
-                    else
-                        newline
-                        error "Analysis failed for device /dev/$device"
-                    fi
-                fi
-            else
-                # User chose 0 or no devices → exit loop
-                break
-            fi
-        done
-    fi
+    done
 
     newline
     success "eMMC Lifetime Analyzer exited."
