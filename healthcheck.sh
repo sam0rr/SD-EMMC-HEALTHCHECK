@@ -93,32 +93,22 @@ show_menu() {
 # ── Interactive device selection ──────────────────────────────────────────────
 select_device() {
     mapfile -t devices < <(discover_emmc_devices)
+    (( ${#devices[@]} )) || { error "No SD/eMMC devices found. Please insert a device and retry."; return 1; }
 
-    if (( ${#devices[@]} == 0 )); then
-        newline
-        error "No SD/eMMC devices found. Please insert a device and retry."
-        newline
-        return 1
-    fi
-
-    while true; do
-        show_menu "${devices[@]}"
-        
-        read -rp "Please select a device (1–${#devices[@]}, name, or 0 to exit): " choice
-
-        if [[ "$choice" == "0" ]]; then
-            newline
+    newline
+    PS3="Please choose a device (1-${#devices[@]}, 0 to exit): "
+    select dev in "${devices[@]}" "Exit"; do
+        if [[ $REPLY == 0 ]]; then
+            newlune
             info "Exiting selection…"
             return 1
-        fi
-        
-        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#devices[@]} )); then
-            SELECTED_DEVICE="${devices[choice-1]}"
+        elif (( REPLY >= 1 && REPLY <= ${#devices[@]} )); then
+            echo "$dev"
             return 0
+        else
+            newline
+            warning "Invalid choice, please try again."
         fi
-
-        newline
-        warning "Invalid selection. Try again."
     done
 }
 
@@ -421,20 +411,20 @@ analyze_device() {
 
 # ── Main execution flow ───────────────────────────────────────────────────────
 main() {
-    local device
-    
+    local device selected
+
     info "eMMC Lifetime Analyzer - Professional Analysis Tool"
     newline
-    
     validate_requirements
 
     while true; do
         newline
-        info "Scanning for eMMC devices..."
-        
-        if select_device; then
+        info "Scanning for SD/eMMC devices…"
+
+        if selected=$(select_device); then
+            device=$selected
             info "Selected device: /dev/$device"
-            
+
             # Analyze the selected device
             if analyze_device "$device"; then
                 newline
@@ -444,11 +434,11 @@ main() {
                 error "Analysis failed for device /dev/$device"
             fi
         else
-            # User selected exit (0) or no devices found
+            # User chose 0 or no devices → exit loop
             break
         fi
     done
-    
+
     newline
     success "eMMC Lifetime Analyzer exited."
     newline
